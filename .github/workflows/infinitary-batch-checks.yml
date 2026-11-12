@@ -1,0 +1,44 @@
+name: Infinitary batch checks
+
+# This test project's batch checks: one small job that checks out the composed
+# batch and confirms the file the test change adds is there.
+on:
+  workflow_call:
+    inputs:
+      batch:
+        type: string
+        required: true
+      base:
+        type: string
+        required: true
+      tree:
+        type: string
+        required: true
+      failed_jobs:
+        type: string
+        default: ""
+      failed_files:
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: inputs.failed_jobs == '' || contains(inputs.failed_jobs, 'Batch tree')
+    name: Batch tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/infinitary-batch
+        with:
+          batch: ${{ inputs.batch }}
+          base: ${{ inputs.base }}
+          tree: ${{ inputs.tree }}
+      - run: |
+          echo "batch=${{ inputs.batch }} base=${{ inputs.base }} tree=${{ inputs.tree }}"
+          test "$(git rev-parse 'HEAD^{tree}')" = "${{ inputs.tree }}"
+          ls -la

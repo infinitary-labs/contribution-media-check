@@ -1,0 +1,26 @@
+name: After merge
+
+# Stands in for a project's after-merge workflows (its main check, release and
+# publishing): it runs on the queue's after-merge signal and on ordinary pushes
+# to main, and logs which one started it and the version it read.
+on:
+  repository_dispatch:
+    types: [infinitary-after-merge]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    name: Record the start
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: |
+          echo "event=$GITHUB_EVENT_NAME sha=$GITHUB_SHA actor=$GITHUB_ACTOR"
+          echo "payload=$PAYLOAD"
+          git log --oneline -3
