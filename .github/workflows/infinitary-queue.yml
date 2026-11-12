@@ -87,6 +87,14 @@ jobs:
     if: github.event_name == 'pull_request_target' && github.event.label.name == 'infinitary-queue'
     name: Queue by label
     runs-on: ubuntu-latest
+    # Test-project change: GitHub refused the label removal with issues: write
+    # alone; this checks whether the label job needs pull-requests: write.
+    permissions:
+      contents: read
+      statuses: write
+      issues: write
+      pull-requests: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
         with:
