@@ -1,6 +1,6 @@
 name: Merge permission diagnosis
 
-# Test-project diagnosis (round 2, branch up to date): repeats the queue merge job's calls on PR #2 with the
+# Test-project diagnosis (round 3, waits for the branch to be brought up to date): repeats the queue merge job's calls on PR #2 with the
 # merge job's own permissions and reports each answer as a notice. The merge
 # call names a version that is not the pull request's head, so GitHub refuses
 # it before merging: 409 means the key may merge, 403 means it may not.
@@ -23,6 +23,7 @@ jobs:
         with:
           retries: 0
           script: |
+            await new Promise((r) => setTimeout(r, 120000));
             const repo = context.repo;
             const n = 2;
             const tryCall = async (name, fn) => {
