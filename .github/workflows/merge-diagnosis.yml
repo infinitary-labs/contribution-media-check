@@ -1,0 +1,39 @@
+name: Merge permission diagnosis
+
+# Test-project diagnosis: repeats the queue merge job's calls on PR #2 with the
+# merge job's own permissions and reports each answer as a notice. The merge
+# call names a version that is not the pull request's head, so GitHub refuses
+# it before merging: 409 means the key may merge, 403 means it may not.
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/merge-diagnosis.yml]
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+  actions: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          retries: 0
+          script: |
+            const repo = context.repo;
+            const n = 2;
+            const tryCall = async (name, fn) => {
+              try { const r = await fn(); core.notice(`${name}: ${r.status}`); return r; }
+              catch (e) { core.notice(`${name}: ${e.status} ${e.message}`); return null; }
+            };
+            const pr = await tryCall('pulls.get', () => github.rest.pulls.get({...repo, pull_number: n}));
+            const head = pr?.data.head.sha;
+            await tryCall('statuses', () => github.rest.repos.listCommitStatusesForRef({...repo, ref: head}));
+            await tryCall('issues.listComments', () => github.rest.issues.listComments({...repo, issue_number: n}));
+            await tryCall('repos.getBranch', () => github.rest.repos.getBranch({...repo, branch: 'main'}));
+            await tryCall('collaboratorPermission', () => github.rest.repos.getCollaboratorPermissionLevel({...repo, username: 'kunchenguid'}));
+            const base = pr?.data.base.sha;
+            await tryCall('pulls.merge with a stale version', () => github.rest.pulls.merge({...repo, pull_number: n, sha: base, merge_method: 'squash', request: {retries: 0}}));
